@@ -4,7 +4,8 @@ import api from '../services/api';
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('auth_token') || '');
-  const user = ref(null);
+  const user = ref(JSON.parse(localStorage.getItem('auth_user') || 'null'));
+  const isLoadingUser = ref(false);
 
   async function login(email: string, password: string) {
     try {
@@ -14,6 +15,7 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = response.data.access_token;
       user.value = response.data.user;
       localStorage.setItem('auth_token', token.value);
+      localStorage.setItem('auth_user', JSON.stringify(response.data.user));
       
       return { success: true };
     } catch (error: any) {
@@ -24,12 +26,35 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function fetchUser() {
+    if (!token.value || isLoadingUser.value) return;
+    
+    try {
+      isLoadingUser.value = true;
+      const response = await api.get('/user');
+      user.value = response.data;
+      localStorage.setItem('auth_user', JSON.stringify(response.data));
+    } catch (error) {
+      console.error('Erro ao buscar usuário:', error);
+      // Se falhar, limpa a autenticação
+      logout();
+    } finally {
+      isLoadingUser.value = false;
+    }
+  }
+
   function logout() {
     token.value = '';
     user.value = null;
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
     // Opcional: Chamar api.post('/logout') se quiser invalidar no back
   }
 
-  return { token, user, login, logout };
+  // Busca os dados do usuário ao inicializar se houver token mas não houver user
+  if (token.value && !user.value) {
+    fetchUser();
+  }
+
+  return { token, user, isLoadingUser, login, logout, fetchUser };
 });
