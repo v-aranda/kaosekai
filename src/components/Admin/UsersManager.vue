@@ -181,30 +181,34 @@ const confirmDelete = async (user: User) => {
     <!-- Modal (Mantido) -->
     <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
         <div class="modal-card">
-            <h3>{{ isEditing ? 'Editar Usuário' : 'Novo Usuário' }}</h3>
-            
-            <div class="form-group">
-                <label>Nome</label>
-                <input v-model="form.name" type="text" placeholder="Nome completo" />
+            <div class="modal-header">
+                <h3>{{ isEditing ? 'Editar Usuário' : 'Novo Usuário' }}</h3>
+                <button class="btn-close" @click="closeModal">✕</button>
             </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Nome</label>
+                    <input v-model="form.name" type="text" placeholder="Nome completo" />
+                </div>
 
-            <div class="form-group">
-                <label>Email</label>
-                <input v-model="form.email" type="email" placeholder="usuario@email.com" />
-            </div>
-            
-            <div class="form-group">
-                <label>Função</label>
-                <select v-model="form.role">
-                    <option value="PLAYER">Jogador</option>
-                    <option value="GM">GM</option>
-                    <option value="ADMIN">Administrador</option>
-                </select>
-            </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input v-model="form.email" type="email" placeholder="usuario@email.com" />
+                </div>
+                
+                <div class="form-group">
+                    <label>Função</label>
+                    <select v-model="form.role">
+                        <option value="PLAYER">Jogador</option>
+                        <option value="GM">GM</option>
+                        <option value="ADMIN">Administrador</option>
+                    </select>
+                </div>
 
-            <div class="form-group">
-                <label>Senha {{ isEditing ? '(Deixe em branco para manter)' : '' }}</label>
-                <input v-model="form.password" type="password" placeholder="******" />
+                <div class="form-group">
+                    <label>Senha {{ isEditing ? '(Deixe em branco para manter)' : '' }}</label>
+                    <input v-model="form.password" type="password" placeholder="******" />
+                </div>
             </div>
 
             <div class="modal-actions">
@@ -367,77 +371,111 @@ const confirmDelete = async (user: User) => {
     color: var(--text-secondary);
 }
 
-// Reuse modal styles...
+// Modal styles alinhados com DocumentsManager
 .modal-overlay {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.7);
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 2000;
+    padding: 1rem;
 }
 
 .modal-card {
-    background: var(--bg-card);
-    border: 2px solid var(--border-main);
-    padding: 25px;
-    border-radius: 16px;
-    width: 400px;
-    max-width: 90%;
+    background: var(--bg-card, #222222);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    overflow: hidden;
+    box-shadow: 0 16px 60px rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border-main);
+}
 
-    h3 { margin: 0; color: var(--color-accent); }
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.1rem 1.35rem;
+    border-bottom: 1px solid var(--border-main);
+
+    h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        color: var(--text-primary);
+    }
+
+    .btn-close {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        color: var(--text-secondary);
+        &:hover { color: var(--text-primary); }
+    }
+}
+
+.modal-body {
+    padding: 1.25rem 1.35rem 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
 }
 
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 6px;
 
-    label { font-size: 0.85rem; color: var(--text-secondary); }
+    label { font-size: 0.9rem; color: var(--text-secondary); }
     
     input, select {
         padding: 10px;
-        background: var(--bg-app);
+        background: var(--bg-secondary);
         border: 1px solid var(--border-main);
         border-radius: 8px;
         color: var(--text-primary);
         outline: none;
 
-        &:focus { border-color: var(--color-accent); }
+        &:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgba(0, 204, 204, 0.2);
+        }
     }
 }
 
 .modal-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    margin-top: 10px;
+    gap: 0.75rem;
+    padding: 1rem 1.35rem 1.35rem;
+    border-top: 1px solid var(--border-main);
 }
 
 .btn-primary, .btn-ghost {
-    padding: 8px 16px;
+    padding: 0.75rem 1.35rem;
     border-radius: 8px;
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 600;
     border: none;
-    transition: all 0.2s;
+    transition: opacity 0.2s;
 }
 
 .btn-primary {
     background: var(--color-accent);
-    color: #000;
-    &:hover { filter: brightness(1.1); }
+    color: var(--text-on-light, #000);
+    border: 1px solid var(--border-main);
+    &:hover:not(:disabled) { opacity: 0.9; }
 }
 
 .btn-ghost {
     background: transparent;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     border: 1px solid var(--border-main);
-    &:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+    &:hover:not(:disabled) { background: rgba(255,255,255,0.04); }
 }
 </style>

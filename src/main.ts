@@ -22,7 +22,9 @@ import {
   GiBackpack,
   GiSkullCrack,
   FaSpinner,
-  HiSolidHome, HiSolidSun, HiSolidMoon, HiSolidLogout, FaSave, GiExitDoor, FaTrash,
+  HiSolidHome, HiSolidSun, HiSolidMoon, HiSolidLogout, HiSolidBookOpen,
+  HiSolidSearch, HiSolidExternalLink, HiSolidChevronLeft, HiSolidChevronRight,
+  FaSave, GiExitDoor, FaTrash,
   GiCheckedShield, GiThreeFriends, GiGears
 
 } from "oh-vue-icons/icons";
@@ -37,7 +39,9 @@ addIcons(
   GiHand, GiSwapBag, GiHealthPotion,
   GiFlashlight, GiFirstAidKit,
   GiWaterBottle, GiBackpack, GiSkullCrack, FaSpinner,
-  HiSolidHome, HiSolidSun, HiSolidMoon, HiSolidLogout, FaSave, GiExitDoor, FaTrash,
+  HiSolidHome, HiSolidSun, HiSolidMoon, HiSolidLogout, HiSolidBookOpen,
+  HiSolidSearch, HiSolidExternalLink, HiSolidChevronLeft, HiSolidChevronRight,
+  FaSave, GiExitDoor, FaTrash,
   GiCheckedShield, GiThreeFriends, GiGears
 
 );

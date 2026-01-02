@@ -7,6 +7,7 @@ import { useCharacterStore } from './stores/characterStore';
 import MainSheet from './views/CharacterSheetView.vue'; 
 import LoginView from './views/LoginView.vue';
 import MyCharactersView from './views/MyCharactersView.vue';
+import CatalogView from './views/CatalogView.vue';
 
 // Componentes de Utils
 import ToastNotification from './components/Utils/ToastNotification.vue';
@@ -32,10 +33,10 @@ const triggerToast = (msg: string, type: 'success' | 'error' = 'success') => {
 provide('notify', triggerToast);
 
 // --- Navegação ---
-const currentView = ref<'HOME' | 'SHEET' | 'ADMIN'>('HOME');
+const currentView = ref<'HOME' | 'SHEET' | 'ADMIN' | 'CATALOG'>('HOME');
 const adminSubtopic = ref('users');
 
-const navigateTo = (view: 'HOME' | 'SHEET' | 'ADMIN', subtopic?: string) => {
+const navigateTo = (view: 'HOME' | 'SHEET' | 'ADMIN' | 'CATALOG', subtopic?: string) => {
   if (view === 'ADMIN') {
     charStore.closeSheet(); // Garante que a ficha feche
     adminSubtopic.value = subtopic || 'users';
@@ -104,18 +105,14 @@ onMounted(() => {
 
           <div class="dock-separator"></div>
 
-          <!-- ADMIN TAB - Only visible for ADMIN users -->
-          <ExpandableNavItem 
-            v-if="authStore.user?.role === 'ADMIN'"
-            icon="gi-checked-shield" 
-            label="Admin"
-            :isActive="currentView === 'ADMIN'"
-            :subItems="[
-              { label: 'Usuários', action: () => navigateTo('ADMIN', 'users') }
-            ]"
-          />
-
-          <div v-if="authStore.user?.role === 'ADMIN'" class="dock-separator"></div>
+          <button 
+            @click="navigateTo('CATALOG')" 
+            class="dock-item" 
+            :class="{ active: currentView === 'CATALOG' }"
+            title="Catálogo de PDFs"
+          >
+            <v-icon name="hi-solid-book-open" scale="1.1" />
+          </button>
 
           <button 
             @click="toggleTheme" 
@@ -126,6 +123,20 @@ onMounted(() => {
           </button>
 
           <div class="dock-separator"></div>
+
+          <!-- ADMIN TAB - agora próximo do logout -->
+          <ExpandableNavItem 
+            v-if="authStore.user?.role === 'ADMIN'"
+            icon="gi-checked-shield" 
+            label="Admin"
+            :isActive="currentView === 'ADMIN'"
+            :subItems="[
+              { label: 'Usuários', action: () => navigateTo('ADMIN', 'users') },
+              { label: 'Documentos', action: () => navigateTo('ADMIN', 'documents') }
+            ]"
+          />
+
+          <div v-if="authStore.user?.role === 'ADMIN'" class="dock-separator"></div>
 
           <button 
             @click="authStore.logout()" 
@@ -149,6 +160,7 @@ onMounted(() => {
       <main class="app-content">
         <MainSheet v-if="currentView === 'SHEET' && charStore.dbId" />
         <AdminView v-else-if="currentView === 'ADMIN'" :currentSubtopic="adminSubtopic" />
+        <CatalogView v-else-if="currentView === 'CATALOG'" />
         <MyCharactersView v-else />
       </main>
       

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import UsersManager from '../components/Admin/UsersManager.vue';
+import DocumentsManager from '../components/Admin/DocumentsManager.vue';
 
 const props = defineProps<{
   currentSubtopic: string;
@@ -9,6 +10,7 @@ const props = defineProps<{
 const title = computed(() => {
   switch (props.currentSubtopic) {
     case 'users': return 'Gerenciar Usuários';
+    case 'documents': return 'Gerenciar Documentos';
     default: return 'Painel Admin';
   }
 });
@@ -24,6 +26,10 @@ const title = computed(() => {
     <div class="admin-content">
       <div v-if="currentSubtopic === 'users'" class="content-section">
         <UsersManager />
+      </div>
+
+      <div v-else-if="currentSubtopic === 'documents'" class="content-section">
+        <DocumentsManager />
       </div>
 
       <!-- Fallback just in case -->

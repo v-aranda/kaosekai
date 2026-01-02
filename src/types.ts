@@ -100,4 +100,16 @@ export interface User {
   role: 'ADMIN' | 'GM' | 'PLAYER';
   created_at?: string;
   password?: string; // Opcional, usado apenas na criação/edição
+
+// 9. Tipos para Documentos (Catálogo de PDFs)
+export interface Document {
+  id: string;
+  name: string;
+  version: string;
+  coverImage: string;
+  pdfFile: string;
+  isWip: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 }
