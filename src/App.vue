@@ -104,8 +104,9 @@ onMounted(() => {
 
           <div class="dock-separator"></div>
 
-          <!-- ADMIN TAB -->
+          <!-- ADMIN TAB - Only visible for ADMIN users -->
           <ExpandableNavItem 
+            v-if="authStore.user?.role === 'ADMIN'"
             icon="gi-checked-shield" 
             label="Admin"
             :isActive="currentView === 'ADMIN'"
@@ -114,8 +115,7 @@ onMounted(() => {
             ]"
           />
 
-
-          <div class="dock-separator"></div>
+          <div v-if="authStore.user?.role === 'ADMIN'" class="dock-separator"></div>
 
           <button 
             @click="toggleTheme" 

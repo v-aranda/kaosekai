@@ -18,7 +18,7 @@ const editingId = ref<number | null>(null);
 const form = ref({
   name: '',
   email: '',
-  role: 'user' as 'admin' | 'user',
+    role: 'PLAYER' as 'ADMIN' | 'GM' | 'PLAYER',
   password: '' // Somente para criação ou reset
 });
 
@@ -50,7 +50,7 @@ onMounted(() => {
 const openCreateModal = () => {
     isEditing.value = false;
     editingId.value = null;
-    form.value = { name: '', email: '', role: 'user', password: '' };
+    form.value = { name: '', email: '', role: 'PLAYER', password: '' };
     showModal.value = true;
 };
 
@@ -77,8 +77,15 @@ const saveUser = async () => {
         return;
     }
 
+    if (!isEditing.value && !form.value.password) {
+        notify('Defina uma senha para o novo usuário', 'error');
+        return;
+    }
+
     if (isEditing.value && editingId.value) {
-        const result = await adminStore.updateUser(editingId.value, form.value);
+        const payload = { ...form.value };
+        if (!payload.password) delete (payload as any).password;
+        const result = await adminStore.updateUser(editingId.value, payload);
         if (result.success) {
             notify('Usuário atualizado com sucesso');
             closeModal();
@@ -189,8 +196,9 @@ const confirmDelete = async (user: User) => {
             <div class="form-group">
                 <label>Função</label>
                 <select v-model="form.role">
-                    <option value="user">Usuário (Jogador)</option>
-                    <option value="admin">Administrador</option>
+                    <option value="PLAYER">Jogador</option>
+                    <option value="GM">GM</option>
+                    <option value="ADMIN">Administrador</option>
                 </select>
             </div>
 
@@ -320,8 +328,9 @@ const confirmDelete = async (user: User) => {
     font-weight: 600;
     text-transform: uppercase;
 
-    &.admin { background: rgba(255, 215, 0, 0.15); color: #ffd700; border: 1px solid rgba(255, 215, 0, 0.3); }
-    &.user { background: rgba(0, 191, 255, 0.15); color: #00bfff; border: 1px solid rgba(0, 191, 255, 0.3); }
+    &.ADMIN { background: rgba(255, 215, 0, 0.15); color: #ffd700; border: 1px solid rgba(255, 215, 0, 0.3); }
+    &.PLAYER { background: rgba(0, 191, 255, 0.15); color: #00bfff; border: 1px solid rgba(0, 191, 255, 0.3); }
+    &.GM { background: rgba(160, 32, 240, 0.15); color: #c39bff; border: 1px solid rgba(160, 32, 240, 0.3); }
 }
 
 .actions-cell {

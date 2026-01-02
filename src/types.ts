@@ -97,7 +97,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  role: 'admin' | 'user'; 
+  role: 'ADMIN' | 'GM' | 'PLAYER';
   created_at?: string;
   password?: string; // Opcional, usado apenas na criação/edição
 }
