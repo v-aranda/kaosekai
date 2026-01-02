@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, provide } from 'vue';
+import { onMounted, ref, provide, watch } from 'vue';
 import { useAuthStore } from './stores/authStore';
 import { useCharacterStore } from './stores/characterStore';
 
@@ -11,7 +11,9 @@ import MyCharactersView from './views/MyCharactersView.vue';
 // Componentes de Utils
 import ToastNotification from './components/Utils/ToastNotification.vue';
 import ConfirmDialog from './components/Utils/ConfirmDialog.vue';
-import GlobalLoader from './components/Utils/GlobalLoader.vue'; 
+import GlobalLoader from './components/Utils/GlobalLoader.vue';
+import ExpandableNavItem from './components/Navigation/ExpandableNavItem.vue';
+import AdminView from './views/AdminView.vue'; 
 
 const authStore = useAuthStore();
 const charStore = useCharacterStore();
@@ -28,6 +30,33 @@ const triggerToast = (msg: string, type: 'success' | 'error' = 'success') => {
 };
 
 provide('notify', triggerToast);
+
+// --- Navegação ---
+const currentView = ref<'HOME' | 'SHEET' | 'ADMIN'>('HOME');
+const adminSubtopic = ref('users');
+
+const navigateTo = (view: 'HOME' | 'SHEET' | 'ADMIN', subtopic?: string) => {
+  if (view === 'ADMIN') {
+    charStore.closeSheet(); // Garante que a ficha feche
+    adminSubtopic.value = subtopic || 'users';
+  } else if (view === 'HOME') {
+    charStore.closeSheet();
+  }
+  // Se for SHEET, o charStore trata isso selecionando um char
+  currentView.value = view;
+};
+
+// Se o charStore tiver um ID, forçamos a view de SHEET
+// Mas precisamos cuidar para que se o usuário clicar em Admin, o ID seja limpo, ou a view tenha prioridade.
+// O App atual usava `charStore.dbId` para decidir entre MainSheet e MyCharacters.
+// Vou alterar a lógica no template para respeitar `currentView` OU `charStore.dbId`.
+
+// Monitorar charStore.dbId para mudar view automaticamente ao selecionar char
+watch(() => charStore.dbId, (newId) => {
+  if (newId) currentView.value = 'SHEET';
+  else if (currentView.value === 'SHEET') currentView.value = 'HOME';
+});
+
 
 // --- Lógica de Tema ---
 const currentTheme = ref('light');
@@ -65,14 +94,28 @@ onMounted(() => {
       <aside class="side-dock-container">
         <div class="dock-wrapper">
           <button 
-            @click="charStore.closeSheet()" 
+            @click="navigateTo('HOME')" 
             class="dock-item" 
+            :class="{ active: currentView === 'HOME' }"
             title="Início"
           >
             <v-icon name="hi-solid-home" scale="1.1" />
           </button>
 
           <div class="dock-separator"></div>
+
+          <!-- ADMIN TAB - Only visible for ADMIN users -->
+          <ExpandableNavItem 
+            v-if="authStore.user?.role === 'ADMIN'"
+            icon="gi-checked-shield" 
+            label="Admin"
+            :isActive="currentView === 'ADMIN'"
+            :subItems="[
+              { label: 'Usuários', action: () => navigateTo('ADMIN', 'users') }
+            ]"
+          />
+
+          <div v-if="authStore.user?.role === 'ADMIN'" class="dock-separator"></div>
 
           <button 
             @click="toggleTheme" 
@@ -104,7 +147,8 @@ onMounted(() => {
       </aside>
 
       <main class="app-content">
-        <MainSheet v-if="charStore.dbId" />
+        <MainSheet v-if="currentView === 'SHEET' && charStore.dbId" />
+        <AdminView v-else-if="currentView === 'ADMIN'" :currentSubtopic="adminSubtopic" />
         <MyCharactersView v-else />
       </main>
       
