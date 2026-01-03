@@ -48,6 +48,8 @@ const title = computed(() => {
   flex-direction: column;
   height: 100%;
   gap: 20px;
+  padding: 1.5rem;
+  box-sizing: border-box;
 }
 
 .admin-header {
@@ -76,7 +78,8 @@ const title = computed(() => {
   align-items: center;
   justify-content: center;
   box-shadow: 4px 4px 0px var(--border-main);
-  overflow: hidden; /* Evita que a tabela vaze se for mt grande */
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .content-section {
@@ -85,6 +88,7 @@ const title = computed(() => {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .placeholder-section {

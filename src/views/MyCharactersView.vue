@@ -87,7 +87,7 @@ v-for="char in filteredCharacters"
 .view-container { 
     max-width: 1200px; 
     margin: 0 auto; 
-    padding: 0 10px 40px 10px;
+    padding: 1.5rem;
 }
 
 /* Header */
