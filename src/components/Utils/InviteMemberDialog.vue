@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useToast } from '../../composables/useToast';
+import { searchUsers as searchUsersService, inviteUserToParty } from '../../services/invitationService';
 
 interface User {
   id: number;
@@ -46,20 +47,7 @@ const searchUsers = async () => {
 
   loading.value = true;
   try {
-    const response = await fetch(
-      `http://localhost:8000/api/users/search?query=${encodeURIComponent(searchQuery.value)}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      }
-    );
-
-    if (response.ok) {
-      users.value = await response.json();
-    } else {
-      toast.error('Erro ao buscar usuários');
-    }
+    users.value = await searchUsersService(searchQuery.value);
   } catch (error) {
     toast.error('Erro ao buscar usuários');
     console.error(error);
@@ -76,26 +64,12 @@ const inviteUser = async (userId: number) => {
 
   invitingUserId.value = userId;
   try {
-    const response = await fetch(`http://localhost:8000/api/parties/${props.partyId}/invitations`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ userId }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      toast.success('Usuário convidado com sucesso!');
-      users.value = users.value.filter(u => u.id !== userId);
-      emit('invited', userId);
-    } else {
-      toast.error(data.message || 'Erro ao convidar usuário');
-    }
-  } catch (error) {
-    toast.error('Erro ao convidar usuário');
+    await inviteUserToParty(Number(props.partyId), userId);
+    toast.success('Usuário convidado com sucesso!');
+    users.value = users.value.filter(u => u.id !== userId);
+    emit('invited', userId);
+  } catch (error: any) {
+    toast.error(error?.response?.data?.message || 'Erro ao convidar usuário');
     console.error(error);
   } finally {
     invitingUserId.value = null;
