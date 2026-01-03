@@ -29,4 +29,31 @@ input, button {
     transition: all 0.1s;
 }
 
+// Estilos globais para Scrollbars (adaptáveis ao tema)
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+    border: 2px solid var(--scrollbar-track);
+    
+    &:hover {
+        background: var(--scrollbar-thumb-hover);
+    }
+}
+
+// Fallback para Firefox
+* {
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    scrollbar-width: thin;
+}
+
 // Você pode adicionar classes utilitárias aqui, se desejar.    

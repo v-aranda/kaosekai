@@ -8,6 +8,7 @@ export interface PartyResponse {
   name: string;
   description: string;
   banner: string | null;
+  code: string;
   type: PartyType;
   members_count: number;
   created_at: string;
@@ -41,4 +42,14 @@ export async function updateParty(id: number, payload: {
 
 export async function deletePartyRequest(id: number) {
   await api.delete(`/parties/${id}`);
+}
+
+export async function findPartyByCode(code: string) {
+  const { data } = await api.get<PartyResponse>(`/parties/code/${code.toUpperCase()}`);
+  return data;
+}
+
+export async function joinParty(code: string) {
+  const { data } = await api.post<PartyResponse>('/parties/join', { code: code.toUpperCase() });
+  return data;
 }

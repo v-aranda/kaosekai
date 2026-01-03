@@ -1,18 +1,22 @@
 <script setup lang="ts">
-import { defineProps, ref, computed, onMounted } from 'vue';
+import { defineProps, ref, computed, onMounted, inject } from 'vue';
 import { useUiStore } from '../stores/uiStore';
 import { listParties, createParty, updateParty, deletePartyRequest, type PartyResponse, type PartyType } from '../services/partyService';
 import { uploadImage } from '../services/uploadService';
+import InviteMemberDialog from '../components/Utils/InviteMemberDialog.vue';
 
 defineProps<{
   currentSubtopic: string;
 }>();
+
+const notify = inject<(msg: string, type?: 'success' | 'error') => void>('notify');
 
 interface Party {
   id: number;
   name: string;
   description: string;
   banner: string;
+  code: string;
   type: PartyType;
   members: number;
 }
@@ -23,6 +27,8 @@ const ui = useUiStore();
 
 const searchQuery = ref('');
 const showCreateDialog = ref(false);
+const inviteDialogOpen = ref(false);
+const selectedPartyIdForInvite = ref<number | null>(null);
 const newParty = ref({
   name: '',
   description: '',
@@ -74,6 +80,31 @@ const closeCreateDialog = () => {
   resetForm();
 };
 
+const openInviteDialog = (partyId: number) => {
+  selectedPartyIdForInvite.value = partyId;
+  inviteDialogOpen.value = true;
+};
+
+const closeInviteDialog = () => {
+  inviteDialogOpen.value = false;
+  selectedPartyIdForInvite.value = null;
+};
+
+const handleInviteSuccess = () => {
+  // Recarregar parties para atualizar contagem de membros
+  loadParties();
+};
+
+const copyCode = async (code: string) => {
+  try {
+    await navigator.clipboard.writeText(code);
+    notify?.('Código copiado!', 'success');
+  } catch (error) {
+    console.error('Erro ao copiar código:', error);
+    notify?.('Erro ao copiar código', 'error');
+  }
+};
+
 const resetForm = () => {
   newParty.value = {
     name: '',
@@ -110,6 +141,7 @@ const mapApiParty = (p: PartyResponse): Party => ({
   name: p.name,
   description: p.description,
   banner: p.banner ?? fallbackBanner,
+  code: p.code,
   type: p.type,
   members: p.members_count ?? 0,
 });
@@ -225,14 +257,23 @@ onMounted(() => {
             </div>
             
             <div class="party-meta">
-              <div class="party-members">
-                <v-icon name="gi-three-friends" />
-                <span>{{ party.members }} membros</span>
+              <div class="party-info-row">
+                <div class="party-code" @click="copyCode(party.code)" title="Clique para copiar">
+                  <v-icon name="gi-key" scale="0.9" />
+                  <span>{{ party.code }}</span>
+                </div>
+                <div class="party-members">
+                  <v-icon name="gi-three-friends" />
+                  <span>{{ party.members }} membros</span>
+                </div>
               </div>
               
               <div class="party-actions">
+                <button class="btn-icon" title="Convidar membro" @click="openInviteDialog(party.id)">
+                  <v-icon name="fa-user-plus" />
+                </button>
                 <button class="btn-icon" title="Editar" @click="onEditParty(party)">
-                  <v-icon name="gi-gears" />
+                  <v-icon name="gi-pencil" />
                 </button>
                 <button class="btn-icon danger" title="Excluir" @click="deleteParty(party.id)">
                   <v-icon name="fa-trash" />
@@ -308,6 +349,14 @@ onMounted(() => {
         </form>
       </div>
     </div>
+
+    <!-- Invite Member Dialog -->
+    <InviteMemberDialog
+      :is-open="inviteDialogOpen"
+      :party-id="selectedPartyIdForInvite"
+      @close="closeInviteDialog"
+      @invited="handleInviteSuccess"
+    />
   </div>
 </template>
 
@@ -485,6 +534,31 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.party-info-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.party-code {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: monospace;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 4px 8px;
+  border-radius: 6px;
+
+  &:hover {
+    background: var(--bg-secondary);
+    transform: scale(1.05);
+  }
 }
 
 .party-members {

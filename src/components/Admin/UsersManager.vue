@@ -178,10 +178,10 @@ const confirmDelete = async (user: User) => {
             <template #item-actions="item">
                 <div class="actions-cell">
                     <button class="btn-icon profile" @click="openProfileScreen(item)" title="Editar no perfil">
-                        <v-icon name="gi-gears" />
+                        <v-icon name="gi-pencil" />
                     </button>
                     <button class="btn-icon edit" @click="openEditModal(item)" title="Editar">
-                        <v-icon name="gi-quill-ink" />
+                        <v-icon name="gi-gears" />
                     </button>
                     <button class="btn-icon delete" @click="confirmDelete(item)" title="Excluir">
                         <v-icon name="fa-trash" />

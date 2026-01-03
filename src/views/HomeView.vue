@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useAuthStore } from '../stores/authStore';
 import { uploadImage } from '../services/uploadService';
+import { listParties, type PartyResponse } from '../services/partyService';
+import { listPostsByParty, createPost, deletePost, type PostResponse } from '../services/postService';
+import JoinPartyDialog from '../components/Utils/JoinPartyDialog.vue';
 
 interface PostItem {
   id: number;
@@ -13,37 +16,121 @@ interface PostItem {
   createdAt: Date;
 }
 
-interface Party {
-  id: number;
-  name: string;
-  image: string;
-}
-
 const authStore = useAuthStore();
 
 const partysOpen = ref(false);
 const partysSearch = ref('');
+const partys = ref<PartyResponse[]>([]);
+const loadingParties = ref(false);
 
-const partys = ref<Party[]>([
-  { id: 1, name: 'Dungeons & Dragons', image: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=150&h=150&fit=crop' },
-  { id: 2, name: 'Pathfinder', image: 'https://images.unsplash.com/photo-1538599508199-48bde8b7fd97?w=150&h=150&fit=crop' },
-  { id: 3, name: 'Warhammer', image: 'https://images.unsplash.com/photo-1570303008025-7aae4d80b5d9?w=150&h=150&fit=crop' },
-  { id: 4, name: 'Magic the Gathering', image: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=150&h=150&fit=crop' },
-  { id: 5, name: 'Cyberpunk 2020', image: 'https://images.unsplash.com/photo-1550258987-920a2eeb0991?w=150&h=150&fit=crop' },
-  { id: 6, name: 'Call of Cthulhu', image: 'https://images.unsplash.com/photo-1538599508199-48bde8b7fd97?w=150&h=150&fit=crop' },
-]);
+const selectedPartyId = ref<number | null>(null);
+const posts = ref<PostResponse[]>([]);
+const loadingPosts = ref(false);
+const hasLoadedOnce = ref(false);
+let pollingInterval: NodeJS.Timeout | null = null;
 
-const posts = ref<PostItem[]>([
-  {
-    id: 1,
-    userId: 2,
-    name: 'Admin Kaosekai',
-    avatar: authStore.user?.avatar,
-    text: 'Bem-vindos! Poste atualizações, ideias ou registros de sessão aqui.',
-    images: [],
-    createdAt: new Date(),
-  },
-]);
+const loadParties = async () => {
+  try {
+    loadingParties.value = true;
+    const data = await listParties();
+    partys.value = data;
+    // Selecionar primeira party se houver
+    if (data.length > 0 && !selectedPartyId.value) {
+      selectedPartyId.value = data[0].id;
+    }
+  } catch (error) {
+    console.error('Failed to load parties:', error);
+    partys.value = [];
+  } finally {
+    loadingParties.value = false;
+  }
+};
+
+const loadPostsByParty = async (partyId: number, silent = false) => {
+  let loaderTimeout: NodeJS.Timeout | null = null;
+  
+  try {
+    // Só mostra loading na primeira vez
+    if (!silent && !hasLoadedOnce.value) {
+      loadingPosts.value = false;
+      loaderTimeout = setTimeout(() => {
+        loadingPosts.value = true;
+      }, 300);
+    }
+
+    const data = await listPostsByParty(partyId);
+    posts.value = data;
+    hasLoadedOnce.value = true;
+  } catch (error) {
+    console.error('Failed to load posts:', error);
+    posts.value = [];
+  } finally {
+    if (loaderTimeout) {
+      clearTimeout(loaderTimeout);
+    }
+    loadingPosts.value = false;
+  }
+};
+
+const checkForNewPosts = async () => {
+  if (!selectedPartyId.value) return;
+  
+  try {
+    const data = await listPostsByParty(selectedPartyId.value, true);
+    
+    const hadPosts = posts.value.length;
+    
+    // Sempre atualiza se o tamanho for diferente
+    if (data.length !== posts.value.length) {
+      posts.value = data;
+      if (data.length > hadPosts) {
+        scrollToBottom();
+      }
+      return;
+    }
+    
+    // Verifica se há mensagens diferentes por ID ou conteúdo
+    for (let i = 0; i < data.length; i++) {
+      if (data[i].id !== posts.value[i]?.id || data[i].text !== posts.value[i]?.text) {
+        posts.value = data;
+        return;
+      }
+    }
+  } catch (error) {
+    // Falha silenciosa no polling
+  }
+};
+
+const startPolling = () => {
+  stopPolling();
+  pollingInterval = setInterval(checkForNewPosts, 1000);
+};
+
+const stopPolling = () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+};
+
+// Watch para carregar posts quando a party selecionada mudar
+watch(selectedPartyId, (newPartyId) => {
+  stopPolling();
+  if (newPartyId) {
+    hasLoadedOnce.value = false; // Reset para mostrar loading ao trocar de party
+    loadPostsByParty(newPartyId);
+    startPolling();
+  }
+});
+
+onMounted(() => {
+  loadParties();
+});
+
+onUnmounted(() => {
+  stopPolling();
+});
+
 const newPost = ref('');
 const pendingImages = ref<{ file: File; preview: string }[]>([]);
 const carouselIndex = ref<Record<number, number>>({});
@@ -53,10 +140,23 @@ const isDraggingFiles = ref(false);
 const diceRollerOpen = ref(false);
 const selectedDice = ref<string[]>([]);
 const diceRolls = ref<{ dice: string; rolls: number[]; total: number }[]>([]);
+const joinPartyDialogOpen = ref(false);
 
 const currentUserId = computed(() => authStore.user?.id ?? 0);
 const currentUserName = computed(() => authStore.user?.name ?? 'Você');
 const currentUserAvatar = computed(() => authStore.user?.avatar ?? null);
+
+const openJoinPartyDialog = () => {
+  joinPartyDialogOpen.value = true;
+};
+
+const closeJoinPartyDialog = () => {
+  joinPartyDialogOpen.value = false;
+};
+
+const handlePartyJoined = () => {
+  loadParties();
+};
 
 const filteredPartys = computed(() => {
   if (!partysSearch.value.trim()) return partys.value;
@@ -86,10 +186,24 @@ const getDiceIcon = (diceType: string) => {
 };
 
 const sortedPosts = computed(() =>
-  [...posts.value].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  [...posts.value].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 );
 
+const scrollToBottom = () => {
+  setTimeout(() => {
+    const feed = document.querySelector('.feed');
+    if (feed) {
+      feed.scrollTop = feed.scrollHeight;
+    }
+  }, 100);
+};
+
 const submitPost = async () => {
+  if (!selectedPartyId.value) {
+    console.error('No party selected');
+    return;
+  }
+
   // Se há dados selecionados, rolar e postar resultado
   if (selectedDice.value.length > 0) {
     rollDices();
@@ -101,19 +215,19 @@ const submitPost = async () => {
     
     const postText = `🎲 Rolagem de Dados\n\n${rollText}\n\nTotal: ${grandTotal}`;
     
-    posts.value.unshift({
-      id: Date.now(),
-      userId: currentUserId.value,
-      name: currentUserName.value,
-      avatar: currentUserAvatar.value,
-      text: postText,
-      images: [],
-      createdAt: new Date(),
-    });
-    
-    selectedDice.value = [];
-    diceRolls.value = [];
-    diceRollerOpen.value = false;
+    try {
+      const newPostData = await createPost(selectedPartyId.value, {
+        text: postText,
+        images: [],
+      });
+      posts.value.unshift(newPostData);
+      selectedDice.value = [];
+      diceRolls.value = [];
+      diceRollerOpen.value = false;
+      scrollToBottom();
+    } catch (error) {
+      console.error('Failed to create post:', error);
+    }
     return;
   }
   
@@ -126,18 +240,19 @@ const submitPost = async () => {
     );
   }
 
-  posts.value.unshift({
-    id: Date.now(),
-    userId: currentUserId.value,
-    name: currentUserName.value,
-    avatar: currentUserAvatar.value,
-    text: newPost.value.trim(),
-    images: uploadedImages,
-    createdAt: new Date(),
-  });
-  newPost.value = '';
-  pendingImages.value.forEach((p) => URL.revokeObjectURL(p.preview));
-  pendingImages.value = [];
+  try {
+    const newPostData = await createPost(selectedPartyId.value, {
+      text: newPost.value.trim(),
+      images: uploadedImages,
+    });
+    posts.value.unshift(newPostData);
+    newPost.value = '';
+    pendingImages.value.forEach((p) => URL.revokeObjectURL(p.preview));
+    pendingImages.value = [];
+    scrollToBottom();
+  } catch (error) {
+    console.error('Failed to create post:', error);
+  }
 };
 
 const userInitial = (name: string) => name?.[0]?.toUpperCase() || '?';
@@ -326,13 +441,46 @@ const confirmDiceRoll = () => {
           </div>
           
           <div class="partys-list">
+            <div v-if="loadingParties" class="loading">Carregando parties...</div>
+            <div 
+              v-else-if="filteredPartys.length === 0" 
+              class="empty"
+            >
+              Nenhuma party encontrada
+            </div>
             <div 
               v-for="party in filteredPartys" 
               :key="party.id" 
               class="party-item"
+              :class="{ active: selectedPartyId === party.id }"
+              @click="selectedPartyId = party.id; partysOpen = false"
             >
-              <img :src="party.image" :alt="party.name" />
+              <div class="party-image-wrapper">
+                <img 
+                  v-if="party.banner" 
+                  :src="party.banner" 
+                  :alt="party.name" 
+                  class="party-image"
+                />
+                <div v-else class="party-placeholder">
+                  <v-icon name="gi-three-friends" scale="2" />
+                </div>
+              </div>
               <span class="party-name">{{ party.name }}</span>
+              <span class="party-members">{{ party.members_count }} membro(s)</span>
+            </div>
+            
+            <!-- Botão Nova Party -->
+            <div 
+              v-if="!loadingParties"
+              class="party-item add-party-btn"
+              @click="openJoinPartyDialog"
+              title="Entrar em uma party"
+            >
+              <div class="party-image-wrapper add-party-wrapper">
+                <v-icon name="fa-plus" scale="1.5" />
+              </div>
+              <span class="party-name">Nova Party</span>
             </div>
           </div>
         </div>
@@ -345,19 +493,39 @@ const confirmDiceRoll = () => {
         @click="partysOpen = !partysOpen"
       >
         <v-icon name="gi-three-friends" />
+        <span v-if="selectedPartyId" class="party-title">
+          {{ partys.find(p => p.id === selectedPartyId)?.name || 'Party' }}
+        </span>
       </button>
     </div>
 
     <div class="feed" role="log" aria-live="polite">
-      <div v-for="post in sortedPosts" :key="post.id" class="post-row" :class="{ mine: post.userId === currentUserId }">
+      <div v-if="selectedPartyId" class="feed-header">
+        <p v-if="loadingPosts && posts.length === 0" class="loading-text">Carregando mensagens...</p>
+      </div>
+      
+      <div v-if="sortedPosts.length === 0 && !loadingPosts" class="no-posts">
+        Nenhuma mensagem nesta party ainda
+      </div>
+
+      <div v-for="post in sortedPosts" :key="post.id" class="post-row" :class="{ mine: post.user_id === currentUserId }">
         <div class="avatar">
-          <img v-if="post.avatar" :src="post.avatar" :alt="post.name" />
-          <span v-else>{{ userInitial(post.name) }}</span>
+          <img v-if="post.user.avatar" :src="post.user.avatar" :alt="post.user.name" />
+          <span v-else>{{ userInitial(post.user.name) }}</span>
         </div>
         <div class="bubble">
           <div class="meta">
-            <span class="name">{{ post.name }}</span>
-            <span class="time">{{ formatTime(post.createdAt) }}</span>
+            <span class="name">{{ post.user.name }}</span>
+            <span class="time">{{ formatTime(new Date(post.created_at)) }}</span>
+            <button 
+              v-if="post.user_id === currentUserId"
+              type="button" 
+              class="delete-btn"
+              @click="deletePost(post.id); posts = posts.filter(p => p.id !== post.id)"
+              title="Deletar mensagem"
+            >
+              <v-icon name="hi-solid-x-mark" scale="0.8" />
+            </button>
           </div>
           <p class="text" v-if="post.text">{{ post.text }}</p>
 
@@ -486,6 +654,13 @@ const confirmDiceRoll = () => {
       </div>
     </div>
   </div>
+
+  <!-- Join Party Dialog -->
+  <JoinPartyDialog 
+    :show="joinPartyDialogOpen" 
+    @close="closeJoinPartyDialog"
+    @joined="handlePartyJoined"
+  />
 </template>
 
 <style scoped lang="scss">
@@ -510,7 +685,7 @@ const confirmDiceRoll = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0;
+  gap: 12px;
   padding: 10px;
   width: fit-content;
   margin-left: 10px;
@@ -522,6 +697,11 @@ const confirmDiceRoll = () => {
   font-weight: 600;
   transition: all 0.2s ease;
   font-size: 4.5rem;
+
+  .party-title {
+    font-size: 1.2rem;
+    white-space: nowrap;
+  }
 }
 
 .partys-toggle:hover {
@@ -635,17 +815,64 @@ const confirmDiceRoll = () => {
   transform: translateY(-4px);
 }
 
-.party-item img {
+.party-item.active .party-image-wrapper {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 12px var(--color-accent);
+}
+
+.party-image-wrapper {
+  position: relative;
   width: 64px;
   height: 64px;
   border-radius: 8px;
-  object-fit: cover;
+  overflow: hidden;
   border: 2px solid var(--border-main);
   transition: all 0.2s ease;
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.party-item:hover img {
+.party-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.party-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.party-item:hover .party-image-wrapper {
   border-color: var(--color-accent);
+}
+
+.add-party-btn {
+  opacity: 0.7;
+  transition: all 0.2s ease;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  .add-party-wrapper {
+    background: var(--bg-primary);
+    border: 2px dashed var(--border-main);
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+  }
+
+  &:hover .add-party-wrapper {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background: rgba(0, 188, 212, 0.1);
+  }
 }
 
 .party-name {
@@ -655,6 +882,23 @@ const confirmDiceRoll = () => {
   line-height: 1.2;
   max-width: 70px;
   word-wrap: break-word;
+}
+
+.party-members {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.partys-list .loading,
+.partys-list .empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  padding: 32px 16px;
+  text-align: center;
+  width: 100%;
 }
 
 .drag-overlay {
@@ -691,7 +935,37 @@ const confirmDiceRoll = () => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding-right: 4px;
+  padding: 12px;
+}
+
+.feed-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 12px;
+  margin-bottom: 8px;
+}
+
+.feed-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.loading-text {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.no-posts {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  padding: 32px 16px;
+  text-align: center;
 }
 
 .post-row {
@@ -756,6 +1030,24 @@ const confirmDiceRoll = () => {
   color: var(--text-secondary);
 }
 
+.delete-btn {
+  margin-left: auto;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-btn:hover {
+  color: var(--color-accent);
+  transform: scale(1.2);
+}
+
 .name {
   font-weight: 700;
   color: var(--text-primary);
@@ -782,7 +1074,9 @@ const confirmDiceRoll = () => {
   padding: 10px;
   box-shadow: 4px 4px 0 var(--border-main);
   position: sticky;
-  bottom: 30px;
+  bottom: 0;
+  width: 75%;
+  margin: 0 auto;
 }
 
 .composer-avatar {

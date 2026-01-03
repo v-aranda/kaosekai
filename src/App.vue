@@ -3,6 +3,7 @@ import { onMounted, ref, provide, watch, computed } from 'vue';
 import type { User } from './types';
 import { useAuthStore } from './stores/authStore';
 import { useCharacterStore } from './stores/characterStore';
+import { setToastRef } from './composables/useToast';
 
 // Componentes Principais
 import MainSheet from './views/CharacterSheetView.vue'; 
@@ -27,6 +28,12 @@ const showUserMenu = ref(false);
 
 // --- Lógica de Toast Centralizada ---
 const toastRef = ref<InstanceType<typeof ToastNotification> | null>(null);
+
+watch(() => toastRef.value, (newVal) => {
+  if (newVal) {
+    setToastRef(toastRef);
+  }
+}, { immediate: true });
 
 const triggerToast = (msg: string, type: 'success' | 'error' = 'success') => {
   if (toastRef.value) {
@@ -186,7 +193,7 @@ onMounted(() => {
           <!-- ADMIN TAB - agora próximo do logout -->
           <ExpandableNavItem 
             v-if="authStore.user?.role === 'ADMIN'"
-            icon="gi-checked-shield" 
+            icon="gi-gears" 
             label="Admin"
             :isActive="currentView === 'ADMIN'"
             :subItems="[

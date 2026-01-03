@@ -57,6 +57,11 @@ $color-gray-600: #555555;  // Texto secundário/Placeholder
     --color-success: #{$color-success};
     --color-error: #{$color-error};
     --color-warning: #{$color-warning};
+
+    // Scrollbar (Tema Claro)
+    --scrollbar-track: #{$color-gray-200};
+    --scrollbar-thumb: #{$color-gray-600};
+    --scrollbar-thumb-hover: #{$color-main};
 }
 
 // TEMA ESCURO (data-theme='dark')
@@ -83,4 +88,12 @@ $color-gray-600: #555555;  // Texto secundário/Placeholder
     // Acentos e Funcionais
     --color-accent: #{$color-main-light}; // Ciano claro para contraste
     --color-accent-dark: #{$color-main};
+    --color-success: #{$color-success};
+    --color-error: #{$color-error};
+    --color-warning: #{$color-warning};
+
+    // Scrollbar (Tema Escuro)
+    --scrollbar-track: #1a1a1a;
+    --scrollbar-thumb: #00cccc;
+    --scrollbar-thumb-hover: #ccffff;
 }

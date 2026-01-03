@@ -32,7 +32,10 @@
             <h3>{{ doc.name }}</h3>
             <p class="version">Versão {{ doc.version }}</p>
             <div class="document-actions">
-              <button @click="editDocument(doc)" class="btn-edit">Editar</button>
+              <button @click="editDocument(doc)" class="btn-edit">
+                <v-icon name="gi-pencil" />
+                <span>Editar</span>
+              </button>
               <button @click="confirmDelete(doc)" class="btn-delete">
                 <v-icon name="fa-trash" scale="1" />
                 <span>Excluir</span>

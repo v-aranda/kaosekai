@@ -20,7 +20,8 @@ api.interceptors.request.use(config => {
   
   // FIX CRÍTICO: Não ative o loader para requisições PUT, 
   // pois são usadas pelo autosave (background task).
-  if (config.method !== 'put') { 
+  // Também não ativa para requisições marcadas como silenciosas (polling).
+  if (config.method !== 'put' && !config.headers['X-Silent-Request']) { 
     const uiStore = useUiStore();
     uiStore.isLoading = true;
   }
@@ -32,7 +33,7 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   response => {
     // Desativa o loader SOMENTE se ele foi ativado na requisição
-    if (response.config.method !== 'put') {
+    if (response.config.method !== 'put' && !response.config.headers['X-Silent-Request']) {
       const uiStore = useUiStore();
       uiStore.isLoading = false;
     }
@@ -40,7 +41,7 @@ api.interceptors.response.use(
   },
   error => {
     // Desativa o loader (ERRO)
-    if (error.config.method !== 'put') {
+    if (error.config?.method !== 'put' && !error.config?.headers['X-Silent-Request']) {
       const uiStore = useUiStore();
       uiStore.isLoading = false;
     }

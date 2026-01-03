@@ -43,7 +43,7 @@ defineExpose({
   align-items: center;
   gap: 10px;
   box-shadow: 5px 5px 0px rgba(0,0,0,1);
-  z-index: 10000;
+  z-index: 99999;
   font-family: 'Share Tech Mono', monospace;
   min-width: 250px;
 
