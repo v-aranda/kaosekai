@@ -23,9 +23,11 @@ import {
   GiSkullCrack,
   FaSpinner,
   HiSolidHome, HiSolidSun, HiSolidMoon, HiSolidLogout, HiSolidBookOpen,
-  HiSolidSearch, HiSolidExternalLink, HiSolidChevronLeft, HiSolidChevronRight,
-  FaSave, GiExitDoor, FaTrash,
-  GiCheckedShield, GiThreeFriends, GiGears
+  HiSolidSearch, HiSolidExternalLink, HiSolidChevronLeft, HiSolidChevronRight, HiSolidArrowUp,
+  FaSave, FaImages, GiExitDoor, FaTrash,
+  GiCheckedShield, GiThreeFriends, GiGears, GiBookshelf, GiNewspaper, GiChessKing,
+  GiDiceSixFacesSix, GiD4, GiPerspectiveDiceSixFacesFive, GiDiceEightFacesEight,
+  GiD10, GiD12, GiDiceTwentyFacesTwenty, GiRollingDices
 
 } from "oh-vue-icons/icons";
 
@@ -40,9 +42,11 @@ addIcons(
   GiFlashlight, GiFirstAidKit,
   GiWaterBottle, GiBackpack, GiSkullCrack, FaSpinner,
   HiSolidHome, HiSolidSun, HiSolidMoon, HiSolidLogout, HiSolidBookOpen,
-  HiSolidSearch, HiSolidExternalLink, HiSolidChevronLeft, HiSolidChevronRight,
-  FaSave, GiExitDoor, FaTrash,
-  GiCheckedShield, GiThreeFriends, GiGears
+  HiSolidSearch, HiSolidExternalLink, HiSolidChevronLeft, HiSolidChevronRight, HiSolidArrowUp,
+  FaSave, FaImages, GiExitDoor, FaTrash,
+  GiCheckedShield, GiThreeFriends, GiGears, GiBookshelf, GiNewspaper, GiChessKing,
+  GiDiceSixFacesSix, GiD4, GiPerspectiveDiceSixFacesFive, GiDiceEightFacesEight,
+  GiD10, GiD12, GiDiceTwentyFacesTwenty, GiRollingDices
 
 );
 

@@ -1,7 +1,10 @@
 <template>
   <div class="documents-manager">
     <div class="documents-header">
-      <h2>Gerenciamento de Documentos</h2>
+      <div class="search-box">
+        <v-icon name="hi-solid-search" />
+        <input v-model="searchQuery" type="text" placeholder="Buscar documento..." />
+      </div>
       <button class="btn-primary" @click="showAddDialog = true">
         <span>➕</span> Adicionar Documento
       </button>
@@ -16,7 +19,7 @@
 
       <div v-else class="documents-grid">
         <div 
-          v-for="doc in documents" 
+          v-for="doc in filteredDocuments" 
           :key="doc.id" 
           class="document-card"
           :class="{ 'is-wip': doc.isWip }"
@@ -118,12 +121,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import type { Document } from '../../types';
 import { listAdminDocuments, createDocument as apiCreateDocument, updateDocument as apiUpdateDocument, deleteDocument as apiDeleteDocument } from '../../services/documentsService';
 import { useUiStore } from '../../stores/uiStore';
 
 const documents = ref<Document[]>([]);
+const searchQuery = ref('');
 const loading = ref(false);
 const showAddDialog = ref(false);
 const editingDoc = ref<Document | null>(null);
@@ -144,6 +148,15 @@ const getFullUrl = (path: string) => {
   const base = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/api$/, '');
   return `${base}${path}`;
 };
+
+const filteredDocuments = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return documents.value;
+  return documents.value.filter((doc) =>
+    doc.name.toLowerCase().includes(q) ||
+    doc.version.toLowerCase().includes(q)
+  );
+});
 
 const loadDocuments = async () => {
   loading.value = true;
@@ -258,15 +271,31 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
-.documents-manager {
-  padding: 2rem;
-}
 
 .documents-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--bg-app);
+    border: 1px solid var(--border-main);
+    border-radius: 10px;
+  
+    input {
+      border: none;
+      background: transparent;
+      outline: none;
+      color: var(--text-primary);
+      font-weight: 600;
+      min-width: 220px;
+    }
+  }
 
   h2 {
     font-size: 1.8rem;

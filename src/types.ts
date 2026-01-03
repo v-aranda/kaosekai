@@ -1,4 +1,4 @@
-// 1. Tipos para Perícias
+// 1. Tipos para Pericias
 export interface SkillItem {
   name: string;
   value: number;
@@ -12,7 +12,7 @@ export interface AttackItem {
   critical: string;
 }
 
-// 3. Tipos para Redução de Dano (RD)
+// 3. Tipos para Reducao de Dano (RD)
 export interface RdSource {
   name: string;
   value: number;
@@ -23,7 +23,7 @@ export interface RdData {
   blockBonus: number;
 }
 
-// 4. Tipos para Inventário
+// 4. Tipos para Inventario
 export type ItemType = 'CONSUMIVEL' | 'EQUIPAMENTO' | 'OUTRO';
 
 export interface InventoryItem {
@@ -37,7 +37,7 @@ export interface InventoryItem {
   equipped?: boolean;
 }
 
-// 5. Tipos para Notas de Investigação (Post-its)
+// 5. Tipos para Notas de Investigacao (Post-its)
 export interface NoteItem {
   id: string;
   x: number;
@@ -50,7 +50,7 @@ export interface NoteItem {
 }
 
 // 6. Tipos para Poderes (Habilidades/Proezas)
-export type PowerType = 'Ação' | 'Reação' | 'Passivo' | 'Técnica';
+export type PowerType = 'Acao' | 'Reacao' | 'Passivo' | 'Tecnica';
 
 export interface PowerItem {
   name: string;
@@ -75,7 +75,6 @@ export interface CharacterData {
   hp: { current: number; max: number };
   determination: { current: number; max: number };
   
-  // rd corrigido de number para RdData (objeto)
   rd: RdData;
   block: number;
   
@@ -92,16 +91,21 @@ export interface CharacterData {
   inventory: InventoryItem[];
   credits: number;
 }
-// 8. Tipos para Usuários (Admin)
+
+// 8. Tipos para Usuarios (Admin)
 export interface User {
   id: number;
   name: string;
   email: string;
   role: 'ADMIN' | 'GM' | 'PLAYER';
+  avatar?: string | null;
   created_at?: string;
-  password?: string; // Opcional, usado apenas na criação/edição
+  password?: string; // Opcional, usado apenas na criacao/edicao
+  createdAt?: string;
+  updatedAt?: string;
+}
 
-// 9. Tipos para Documentos (Catálogo de PDFs)
+// 9. Tipos para Documentos (Catalogo de PDFs)
 export interface Document {
   id: string;
   name: string;
@@ -111,5 +115,4 @@ export interface Document {
   isWip: boolean;
   createdAt: string;
   updatedAt: string;
-}
 }

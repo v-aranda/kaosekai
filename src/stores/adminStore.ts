@@ -46,7 +46,7 @@ export const useAdminStore = defineStore('admin', () => {
             if (idx !== -1) {
                 users.value[idx] = response.data;
             }
-            return { success: true };
+            return { success: true, user: response.data as User };
         } catch (err: any) {
             return { success: false, message: err.response?.data?.message || err.message };
         } finally {

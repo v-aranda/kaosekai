@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref, provide, watch } from 'vue';
+import { onMounted, ref, provide, watch, computed } from 'vue';
+import type { User } from './types';
 import { useAuthStore } from './stores/authStore';
 import { useCharacterStore } from './stores/characterStore';
 
@@ -8,16 +9,21 @@ import MainSheet from './views/CharacterSheetView.vue';
 import LoginView from './views/LoginView.vue';
 import MyCharactersView from './views/MyCharactersView.vue';
 import CatalogView from './views/CatalogView.vue';
+import HomeView from './views/HomeView.vue';
+import ProfileView from './views/ProfileView.vue';
 
 // Componentes de Utils
 import ToastNotification from './components/Utils/ToastNotification.vue';
 import ConfirmDialog from './components/Utils/ConfirmDialog.vue';
 import GlobalLoader from './components/Utils/GlobalLoader.vue';
 import ExpandableNavItem from './components/Navigation/ExpandableNavItem.vue';
-import AdminView from './views/AdminView.vue'; 
+import AdminView from './views/AdminView.vue';
+import MasterView from './views/MasterView.vue'; 
 
 const authStore = useAuthStore();
 const charStore = useCharacterStore();
+const profileTargetUser = ref<User | null>(null);
+const showUserMenu = ref(false);
 
 // --- Lógica de Toast Centralizada ---
 const toastRef = ref<InstanceType<typeof ToastNotification> | null>(null);
@@ -31,20 +37,53 @@ const triggerToast = (msg: string, type: 'success' | 'error' = 'success') => {
 };
 
 provide('notify', triggerToast);
+provide('profileTargetUser', profileTargetUser);
 
 // --- Navegação ---
-const currentView = ref<'HOME' | 'SHEET' | 'ADMIN' | 'CATALOG'>('HOME');
+const currentView = ref<'HOME' | 'MYCHARS' | 'SHEET' | 'ADMIN' | 'MASTER' | 'CATALOG' | 'PROFILE'>('HOME');
 const adminSubtopic = ref('users');
+const masterSubtopic = ref('partys');
+const lastView = ref<'HOME' | 'MYCHARS' | 'SHEET' | 'ADMIN' | 'MASTER' | 'CATALOG'>('HOME');
 
-const navigateTo = (view: 'HOME' | 'SHEET' | 'ADMIN' | 'CATALOG', subtopic?: string) => {
+const navigateTo = (view: 'HOME' | 'MYCHARS' | 'SHEET' | 'ADMIN' | 'MASTER' | 'CATALOG' | 'PROFILE', subtopic?: string) => {
   if (view === 'ADMIN') {
     charStore.closeSheet(); // Garante que a ficha feche
     adminSubtopic.value = subtopic || 'users';
-  } else if (view === 'HOME') {
+  } else if (view === 'MASTER') {
     charStore.closeSheet();
+    masterSubtopic.value = subtopic || 'partys';
+  } else if (view === 'HOME' || view === 'MYCHARS' || view === 'PROFILE') {
+    charStore.closeSheet();
+  }
+  if (view !== 'PROFILE') {
+    lastView.value = view;
   }
   // Se for SHEET, o charStore trata isso selecionando um char
   currentView.value = view;
+};
+
+const openProfileForUser = (user: User | null) => {
+  profileTargetUser.value = user;
+  navigateTo('PROFILE');
+};
+
+provide('openProfileForUser', openProfileForUser);
+provide('closeProfileDialog', () => navigateTo(lastView.value));
+
+const openOwnProfile = () => {
+  profileTargetUser.value = null;
+  navigateTo('PROFILE');
+};
+
+const avatarUrl = computed(() => authStore.user?.avatar || '');
+const userInitial = computed(() => (authStore.user?.name?.[0]?.toUpperCase() || '?'));
+
+const toggleUserMenu = () => {
+  showUserMenu.value = !showUserMenu.value;
+};
+
+const closeUserMenu = () => {
+  showUserMenu.value = false;
 };
 
 // Se o charStore tiver um ID, forçamos a view de SHEET
@@ -55,7 +94,7 @@ const navigateTo = (view: 'HOME' | 'SHEET' | 'ADMIN' | 'CATALOG', subtopic?: str
 // Monitorar charStore.dbId para mudar view automaticamente ao selecionar char
 watch(() => charStore.dbId, (newId) => {
   if (newId) currentView.value = 'SHEET';
-  else if (currentView.value === 'SHEET') currentView.value = 'HOME';
+  else if (currentView.value === 'SHEET') currentView.value = 'MYCHARS';
 });
 
 
@@ -106,12 +145,21 @@ onMounted(() => {
           <div class="dock-separator"></div>
 
           <button 
+            @click="navigateTo('MYCHARS')" 
+            class="dock-item" 
+            :class="{ active: currentView === 'MYCHARS' }"
+            title="Fichas"
+          >
+            <v-icon name="gi-newspaper" scale="1.1" />
+          </button>
+
+          <button 
             @click="navigateTo('CATALOG')" 
             class="dock-item" 
             :class="{ active: currentView === 'CATALOG' }"
             title="Catálogo de PDFs"
           >
-            <v-icon name="hi-solid-book-open" scale="1.1" />
+            <v-icon name="gi-bookshelf" scale="1.1" />
           </button>
 
           <button 
@@ -123,6 +171,17 @@ onMounted(() => {
           </button>
 
           <div class="dock-separator"></div>
+
+          <!-- MASTER TAB -->
+          <ExpandableNavItem 
+            v-if="authStore.user?.role === 'MASTER' || authStore.user?.role === 'ADMIN'"
+            icon="gi-chess-king" 
+            label="Área do Mestre"
+            :isActive="currentView === 'MASTER'"
+            :subItems="[
+              { label: 'Partys', action: () => navigateTo('MASTER', 'partys') }
+            ]"
+          />
 
           <!-- ADMIN TAB - agora próximo do logout -->
           <ExpandableNavItem 
@@ -138,13 +197,24 @@ onMounted(() => {
 
           <div v-if="authStore.user?.role === 'ADMIN'" class="dock-separator"></div>
 
-          <button 
-            @click="authStore.logout()" 
-            class="dock-item logout" 
-            title="Sair"
-          >
-            <v-icon name="gi-exit-door" scale="1.1" />
-          </button>
+          <div class="user-menu">
+            <button 
+              @click="toggleUserMenu" 
+              class="dock-item avatar-button" 
+              :class="{ active: currentView === 'PROFILE', open: showUserMenu }"
+              title="Perfil"
+            >
+              <div class="avatar-thumb">
+                <img v-if="avatarUrl" :src="avatarUrl" alt="avatar" />
+                <span v-else>{{ userInitial }}</span>
+              </div>
+            </button>
+            <div v-if="showUserMenu" class="user-menu-panel">
+              <div class="user-menu-header">Perfil</div>
+              <button @click="openOwnProfile(); closeUserMenu()">Editar Perfil</button>
+              <button class="logout" @click="authStore.logout(); closeUserMenu()">Logout</button>
+            </div>
+          </div>
         </div>
 
         <div v-if="charStore.dbId" class="dock-status-vertical">
@@ -159,9 +229,12 @@ onMounted(() => {
 
       <main class="app-content">
         <MainSheet v-if="currentView === 'SHEET' && charStore.dbId" />
+        <MasterView v-else-if="currentView === 'MASTER'" :currentSubtopic="masterSubtopic" />
         <AdminView v-else-if="currentView === 'ADMIN'" :currentSubtopic="adminSubtopic" />
         <CatalogView v-else-if="currentView === 'CATALOG'" />
-        <MyCharactersView v-else />
+        <ProfileView v-else-if="currentView === 'PROFILE'" />
+        <MyCharactersView v-else-if="currentView === 'MYCHARS'" />
+        <HomeView v-else />
       </main>
       
     </div>
@@ -223,6 +296,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+  font-size: 2.5em;
 
   &:hover {
     transform: scale(1.15);
@@ -234,6 +308,82 @@ onMounted(() => {
     color: var(--color-error);
     background: rgba(255, 0, 0, 0.1);
   }
+
+  &.active {
+    font-size: 2.7em;
+  }
+}
+
+.user-menu {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.avatar-button {
+  padding: 0;
+}
+
+.avatar-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--border-main);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.avatar-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-menu-panel {
+  position: absolute;
+  top: 50%;
+  left: 60px; /* projeta para a direita da navbar */
+  transform: translateY(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: 10px;
+  box-shadow: 4px 4px 0 var(--border-main);
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  z-index: 1200;
+}
+
+.user-menu-header {
+  padding: 10px 12px;
+  font-weight: 700;
+  border-bottom: 1px solid var(--border-main);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.user-menu-panel button {
+  background: transparent;
+  border: none;
+  padding: 10px 12px;
+  text-align: left;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.user-menu-panel button:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.user-menu-panel .logout {
+  color: var(--color-error);
 }
 
 .dock-separator {
@@ -268,7 +418,7 @@ onMounted(() => {
 /* CONTEÚDO PRINCIPAL */
 .app-content { 
     flex: 1; 
-    padding: 20px;
+    padding: 0;
     overflow-y: auto; 
     background: var(--bg-app);
     height: 100vh;

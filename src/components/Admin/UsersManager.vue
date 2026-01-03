@@ -9,6 +9,7 @@ import type { Header, Item } from "vue3-easy-data-table";
 const adminStore = useAdminStore();
 const uiStore = useUiStore();
 const notify = inject('notify') as (msg: string, type?: 'success' | 'error') => void;
+const openProfileForUser = inject('openProfileForUser') as ((user: User | null) => void) | undefined;
 
 // --- Estado do Modal ---
 const showModal = ref(false);
@@ -26,11 +27,11 @@ const form = ref({
 const searchQuery = ref('');
 
 const headers: Header[] = [
-  { text: "ID", value: "id", sortable: true },
-  { text: "NOME", value: "name", sortable: true },
-  { text: "EMAIL", value: "email", sortable: true },
-  { text: "FUNÇÃO", value: "role", sortable: true },
-  { text: "AÇÕES", value: "actions" },
+    { text: "FOTO", value: "avatar" },
+    { text: "NOME", value: "name", sortable: true },
+    { text: "EMAIL", value: "email", sortable: true },
+    { text: "FUNÇÃO", value: "role", sortable: true },
+    { text: "AÇÕES", value: "actions" },
 ];
 
 // Mapeia usuários para itens da tabela (embora o objeto já seja compatível, 
@@ -65,6 +66,14 @@ const openEditModal = (user: User) => {
         password: '' // Senha vazia ao editar (não alterar se não preencher)
     };
     showModal.value = true;
+};
+
+const openProfileScreen = (user: User) => {
+    if (openProfileForUser) {
+        openProfileForUser(user);
+    } else {
+        notify('Navegação de perfil indisponível', 'error');
+    }
 };
 
 const closeModal = () => {
@@ -144,6 +153,14 @@ const confirmDelete = async (user: User) => {
             :rows-per-page="10"
             table-class-name="customize-table"
         >
+            <!-- Customização da Coluna FOTO -->
+            <template #item-avatar="item">
+                <div class="avatar-thumb" :title="item.name">
+                    <img v-if="item.avatar" :src="item.avatar" alt="avatar" />
+                    <span v-else>{{ item.name?.slice(0, 1)?.toUpperCase() || '?' }}</span>
+                </div>
+            </template>
+
             <!-- Customização da Coluna NOME -->
             <template #item-name="item">
                 <div class="user-info">
@@ -160,6 +177,9 @@ const confirmDelete = async (user: User) => {
              <!-- Customização da Coluna AÇÕES -->
             <template #item-actions="item">
                 <div class="actions-cell">
+                    <button class="btn-icon profile" @click="openProfileScreen(item)" title="Editar no perfil">
+                        <v-icon name="gi-gears" />
+                    </button>
                     <button class="btn-icon edit" @click="openEditModal(item)" title="Editar">
                         <v-icon name="gi-quill-ink" />
                     </button>
@@ -229,13 +249,13 @@ const confirmDelete = async (user: User) => {
     --easy-table-border: none;
     --easy-table-row-border: 1px solid var(--border-main);
 
-    --easy-table-header-font-size: 0.85rem;
+    --easy-table-header-font-size: 0.95rem;
     --easy-table-header-height: 50px;
     --easy-table-header-font-color: var(--text-secondary);
     --easy-table-header-background-color: rgba(0,0,0,0.1);
 
     --easy-table-body-row-height: 60px;
-    --easy-table-body-row-font-size: 0.95rem;
+    --easy-table-body-row-font-size: 1rem;
     --easy-table-body-row-font-color: var(--text-primary);
     --easy-table-body-row-background-color: transparent;
     --easy-table-body-row-hover-background-color: rgba(255, 255, 255, 0.02);
@@ -337,6 +357,26 @@ const confirmDelete = async (user: User) => {
     &.GM { background: rgba(160, 32, 240, 0.15); color: #c39bff; border: 1px solid rgba(160, 32, 240, 0.3); }
 }
 
+.avatar-thumb {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid var(--border-main);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary);
+    font-weight: 700;
+    color: var(--text-secondary);
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+}
+
 .actions-cell {
     display: flex;
     align-items: center;
@@ -362,6 +402,7 @@ const confirmDelete = async (user: User) => {
         transform: scale(1.1); 
         background-color: rgba(255,255,255,0.05);
     }
+    &.profile:hover { color: var(--color-accent); }
     &.delete:hover { color: var(--color-error); background-color: rgba(255, 0, 0, 0.1); }
 }
 
