@@ -46,9 +46,10 @@ api.interceptors.response.use(
       uiStore.isLoading = false;
     }
 
-    // Se o token expirou (401), força o logout
-    if (error.response?.status === 401) {
+    // Se o token expirou (401), força o logout (exceto na requisição de login)
+    if (error.response?.status === 401 && !error.config?.url?.includes('/login')) {
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
         window.location.reload(); 
     }
 

@@ -22,17 +22,30 @@ const handleLogin = async () => {
 </script>
 
 <template>
-<div class="login-wrapper"><div class="login-card">
-      <div class="login-header"><h1>KAOSEKAI</h1><p>BEM VINDO AO CAOS</p></div>
-        
-      <div class="form-group"><label>E-MAIL</label><input v-model="email" type="email" placeholder="seu@email.com" :disabled="ui.isLoading"/></div>
+  <div class="login-wrapper">
+    <div class="login-card">
+      <div class="login-header">
+        <h1>KAOSEKAI</h1>
+        <p>BEM VINDO AO CAOS</p>
+      </div>
 
-      <div class="form-group"><label>SENHA</label><input v-model="password" type="password" placeholder="••••••" @keyup.enter="handleLogin":disabled="ui.isLoading"/></div>
+      <div class="form-group">
+        <label>E-MAIL</label>
+        <input v-model="email" type="email" placeholder="seu@email.com" :disabled="ui.isLoading" />
+      </div>
 
-      <div v-if="errorMsg" class="error-alert">{{ errorMsg }}</div>
+      <div class="form-group">
+        <label>SENHA</label>
+        <input v-model="password" type="password" placeholder="••••••" @keyup.enter="handleLogin" :disabled="ui.isLoading" />
+      </div>
 
-      <button class="btn-primary" @click="handleLogin" :disabled="ui.isLoading">{{ ui.isLoading ? 'ENTRANDO...' : 'ENTRAR' }}</button>
-    </div></div>
+      <div v-if="errorMsg" class="error-alert">{{ errorMsg }}</div>
+
+      <button class="btn-primary" @click="handleLogin" :disabled="ui.isLoading">
+        {{ ui.isLoading ? 'ENTRANDO...' : 'ENTRAR' }}
+      </button>
+    </div>
+  </div>
 </template>
 
 <style scoped lang="scss">
